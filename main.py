@@ -9,9 +9,10 @@ def sigmoid(x):
 def sigmoid_prim(x):
 	return (x * (1 - x))
 
-class Neutron:
+class Neuron:
 	def __init__(self, num_weights):
 		self.weights = []
+		self.output = 0
 		for i in range(0, num_weights):
 			self.weights.append(uniform(-1, 1))
 			print(self.weights[i])
@@ -23,8 +24,9 @@ class Neutron:
 		x = 0
 		for weight, value in zip(self.weights, values):
 			x += weight*value
-			
-		return sigmoid(x)
+		
+		self.output = sigmoid(x)	
+		return self.output
 		
 	def learn(self, values, correct_answer):
 		learn_speed = 0.01
@@ -41,45 +43,62 @@ class Neutron:
 
 class Network:
 	def __init__(self, num_hidden_layers, num_inputs, num_outputs):
-		self.neutron_layers = []
+		self.neuron_layers = []
 		#Input layer
-		neutrons = []		
+		neurons = []
 		for i in range(0, num_inputs):
-			neutrons.append(Neutron(num_inputs))
-		self.neutron_layers.append(neutrons)
+			neurons.append(Neuron(num_inputs))
+		self.neuron_layers.append(neurons)
 		#Hidden layers
 		for i in range(0, num_hidden_layers):
-			neutrons = []
+			neurons = []
 			for n in range(0, num_inputs):
-				neutrons.append(Neutron(num_inputs))
-			self.neutron_layers.append(neutrons)
+				neurons.append(Neuron(num_inputs))
+			self.neuron_layers.append(neurons)
 		#Output layer
-		neutrons = []
+		neurons = []
 		for i in range(0, num_outputs):
-			neutrons.append(Neutron(num_inputs))
-		self.neutron_layers.append(neutrons)
+			neurons.append(Neuron(num_inputs))
+		self.neuron_layers.append(neurons)
 		
 	def feed_forward(self, values):
 		layer_results = []
 		layer_result = []
-		for neutron in self.neutron_layers[0]:
-			layer_result.append(neutron.feed_forward(values))
+		for neuron in self.neuron_layers[0]:
+			layer_result.append(neuron.feed_forward(values))
 		print(str(layer_result))
 		layer_results.append(layer_result)
 		
-		for index in range(1, len(self.neutron_layers)):
+		for index in range(1, len(self.neuron_layers)):
 			prev_layer_result = layer_result
 			layer_result = []
-			for neutron in self.neutron_layers[index]:
-				layer_result.append(neutron.feed_forward(prev_layer_result))
+			for neuron in self.neuron_layers[index]:
+				layer_result.append(neuron.feed_forward(prev_layer_result))
 			print(str(layer_result))
-			layer_results.append(layer_result)			
+			layer_results.append(layer_result)
+			
+		return layer_results[-1]
+			
+	def back_propagate(self, expected, actual):
+		output_layer = self.neuron_layers[-1]
+		
+		# Get error from each neuron in output layer.
+		output_error = [0,0] * len(output_layer)
+		for error_index in range(0, len(output_layer)):
+			error = expected[error_index] - actual[error_index]
+			output_error[error_index] = sigmoid_prim(output_layer[error_index].output) * error
+		print(str(output_error))
+		
 
 if __name__ == "__main__":
 	print("Main called")
 	network = Network(1, 4, 1)
-	network.feed_forward([1, 1, 1, 1])	
+	res = network.feed_forward([1, 1, 1, 1])
+	
+	print("Res: " + str(res))
+	
+	network.back_propagate([1], res)
 
-	#neutron = Neutron(4)	
+	#neuron = Neuron(4)	
 	#for i in range(0, 1000):
-	#	print("Iteration: " + str(i) + ": " + str(neutron.learn([1, 1, 0, 1], 0.5)))
+	#	print("Iteration: " + str(i) + ": " + str(neuron.learn([1, 1, 0, 1], 0.5)))
