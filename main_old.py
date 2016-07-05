@@ -28,18 +28,18 @@ class Neuron:
 		self.output = sigmoid(x)	
 		return self.output
 		
-	def learn(self, values, correct_answer):
-		learn_speed = 0.01
-		result = self.feed_forward(values)
-		print("Result: " + str(result))
-		error = correct_answer - result
-		print("Error: " + str(error))
-		index = 0
-		for weight, value in zip(self.weights, values):
-			self.weights[index] += learn_speed * error * value
-			print("Weight: " + str(self.weights[index]))
-			index += 1
-		return result
+	#def learn(self, values, correct_answer):
+	#	learn_speed = 0.01
+	#	result = self.feed_forward(values)
+	#	print("Result: " + str(result))
+	#	error = correct_answer - result
+	#	print("Error: " + str(error))
+	#	index = 0
+	#	for weight, value in zip(self.weights, values):
+	#		self.weights[index] += learn_speed * error * value
+	#		print("Weight: " + str(self.weights[index]))
+	#		index += 1
+	#	return result
 
 class Network:
 	def __init__(self, num_hidden_layers, num_inputs, num_outputs):
@@ -80,15 +80,30 @@ class Network:
 		return layer_results[-1]
 			
 	def back_propagate(self, expected, actual):
-		output_layer = self.neuron_layers[-1]
 		
 		# Get error from each neuron in output layer.
-		output_error = [0,0] * len(output_layer)
-		for error_index in range(0, len(output_layer)):
-			error = expected[error_index] - actual[error_index]
-			output_error[error_index] = sigmoid_prim(output_layer[error_index].output) * error
+		output_layer = self.neuron_layers[-1]
+		output_error = [0.0] * len(output_layer)
+		for neuron_index in range(len(output_layer)):
+			error = expected[neuron_index] - actual[neuron_index]
+			print("Error: " + str(error))
+			output_error[neuron_index] = sigmoid_prim(output_layer[neuron_index].output) * error
 		print(str(output_error))
 		
+		# Get error from each neuron in the hidden layers
+		hidden_layers = self.neuron_layers[1:-1]
+		hidden_error = [0.0] * 4#len(hidden_layers)
+		print("hidden_error: " + str(hidden_error))
+		for layer_index in reversed(range(len(hidden_layers))):
+			hidden_layer = hidden_layers[layer_index]
+			for neuron_index in range(len(hidden_layer)):
+				error = 0.0
+				for error_index in 	range(len(output_error)):
+					error = error + output_error[error_index] * hidden_layer[neuron_index].weights[error_index]
+				print("Error from neuron in layer: " + str(error))
+				hidden_error[neuron_index] = sigmoid_prim(hidden_layer[neuron_index].output) * error
+				print("hidden_error for neuron: " + str(hidden_error[neuron_index]))
+			
 
 if __name__ == "__main__":
 	print("Main called")
