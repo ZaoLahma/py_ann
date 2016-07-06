@@ -3,15 +3,16 @@
 
 from random import uniform
 from math import exp
+from math import tanh
 
 #------------------------------------------------
 # The activation function.
 def sigmoid(x):
-	return (1 / (1 + exp(-x)))
+	return tanh(x)
 
 # The derivate of the activation function
 def sigmoid_prim(x):
-	return (sigmoid(x) * (1 - x))
+	return 1.0 - x**2
 #------------------------------------------------
 
 class Neuron():
@@ -37,11 +38,11 @@ class NeuralNet():
 		self.hidden = []
 		self.outputs = []
 		
-		for i in range(num_inputs):
-			self.inputs.append(Neuron(num_inputs))
+		for i in range(num_inputs + 1):
+			self.inputs.append(Neuron(num_inputs + 1))
 		
 		for i in range(num_hidden):
-			self.hidden.append(Neuron(num_inputs))	
+			self.hidden.append(Neuron(num_inputs + 1))	
 			
 		for i in range(num_outputs):
 			self.outputs.append(Neuron(num_hidden))
@@ -72,7 +73,7 @@ class NeuralNet():
 		out_error = [0.0] * len(self.outputs)
 		for neuron_index in range(len(self.outputs)):
 			error = expected[neuron_index] - actual[neuron_index]
-			print("Output relative error: " + str(error))
+			#print("Output relative error: " + str(error))
 			out_error[neuron_index] = error * sigmoid_prim(self.outputs[neuron_index].prev_output)
 		
 		# Get the error from the hidden neuron(s):
@@ -114,21 +115,21 @@ class NeuralNet():
 
 def run():
 	print("run called")
-	num_inputs = 4
-	num_outputs = 4
+	num_inputs = 3
+	num_outputs = 3
 	num_hidden = 4
 	
 	net = NeuralNet(num_inputs, num_outputs, num_hidden)
 	
-	pattern = [1, 1, 1, 1]
-	expected_output = [0, 0, 0, 0]
+	pattern = [1, 1, 1]
+	expected_output = [0, 1, 0]
 	
 	first_res = net.feed_forward(pattern)
 	
 	learn_rate = 0.01
-	local_learn_rate = 0.01
+	local_learn_rate = None
 	
-	for i in range(1):
+	for i in range(100):
 		res = net.feed_forward(pattern)
 	
 		#print("Result: " + str(res))
