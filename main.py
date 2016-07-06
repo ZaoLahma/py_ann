@@ -33,10 +33,6 @@ class Neuron():
 
 class NeuralNet():
 	def __init__(self, num_inputs, num_outputs, num_hidden):
-		#self.inputs = [Neuron(num_inputs)] * num_inputs
-		#self.hidden = [Neuron(num_inputs)] * num_hidden
-		#self.outputs = [Neuron(num_hidden)] * num_outputs
-		
 		self.inputs = []
 		self.hidden = []
 		self.outputs = []
@@ -71,13 +67,13 @@ class NeuralNet():
 		
 		return self.layer_results[-1]
 		
-	def back_propagate(self, expected, actual):
+	def back_propagate(self, expected, actual, learning_rate, local_learn_rate):
 		# Get the error from the output neuron(s)
 		out_error = [0.0] * len(self.outputs)
 		for neuron_index in range(len(self.outputs)):
 			error = expected[neuron_index] - actual[neuron_index]
 			out_error[neuron_index] = error * sigmoid_prim(self.outputs[neuron_index].prev_output)
-		print("Output error: " + str(out_error))
+		#print("Output error: " + str(out_error))
 		
 		# Get the error from the hidden neuron(s):
 		# Multiply the output error with the weight between the neurons
@@ -93,40 +89,56 @@ class NeuralNet():
 					
 			# Phew...! Now let's get the neuron error. I think. o.O
 			hidden_error[neuron_index] = neuron_error_sum * sigmoid_prim(self.hidden[neuron_index].prev_output)
-			print("prev output: " + str(self.hidden[neuron_index].prev_output))
-			print("Hidden error: " + str(hidden_error))
+			#print("prev output: " + str(self.hidden[neuron_index].prev_output))
+			#print("Hidden error: " + str(hidden_error))
 			
 		
 		for hidden_index in range(len(self.hidden)):	
 			for error_index in range(len(out_error)):
 				for output_index in range(len(self.outputs)):
-					change = out_error[error_index] * self.hidden[hidden_index].prev_output
-					print("out_error: " + str(out_error[error_index] ) + " prev output: " + str(self.hidden[hidden_index].prev_output) + " Change: " + str(change))
-					self.outputs[output_index].weights[error_index] = self.outputs[output_index].weights[error_index] * change * self.outputs[output_index].change_out
+					change = out_error[error_index] * self.hidden[hidden_index].prev_output * learning_rate
+					if None != local_learn_rate:
+						change = change + local_learn_rate *  self.hidden[hidden_index].change_out					
+					#print("out_error: " + str(out_error[error_index]) + " prev output: " + str(self.hidden[hidden_index].prev_output) + " Change: " + str(change))
+					self.outputs[output_index].weights[error_index] = self.outputs[output_index].weights[error_index] + change
 					self.outputs[output_index].change_out = change
-			print("New weights: " + str(self.outputs[output_index].weights))
+			#print("New output weights: " + str(self.outputs[output_index].weights))
 			
 		for input_index in range(len(self.inputs)):
 			for error_index in range(len(hidden_error)):
 				for hidden_index in range(len(self.hidden)):
-					change = hidden_error[error_index] * self.inputs[input_index].prev_output
-					self.hidden[hidden_index].weights[error_index] = self.hidden[hidden_index].weights[error_index] * change * self.hidden[hidden_index].change_in
+					change = hidden_error[error_index] * self.inputs[input_index].prev_output * learning_rate
+					if None != local_learn_rate:
+						change = change + local_learn_rate *  self.inputs[input_index].change_in
+					self.hidden[hidden_index].weights[error_index] = self.hidden[hidden_index].weights[error_index] + change
 					self.hidden[hidden_index].change_in = change
-			print("New weights hidden layer: " + str(self.hidden[hidden_index].weights))
+			#print("New weights hidden layer: " + str(self.hidden[hidden_index].weights))
 
 def run():
 	print("run called")
-	net = NeuralNet(4, 1, 4)
+	num_inputs = 4
+	num_outputs = 4
+	num_hidden = 4
 	
-	for i in range(1000):
-		res = net.feed_forward([1, 1, 1, 1])
+	net = NeuralNet(num_inputs, num_outputs, num_hidden)
 	
-		print("Result: " + str(res))
+	pattern = [1, 0, 1, 1]
+	expected_output = [0, 1, 0, 0]
 	
-		net.back_propagate([1], res)
+	first_res = net.feed_forward(pattern)
+	
+	learn_rate = 0.01
+	local_learn_rate = 0.01
+	
+	for i in range(10):
+		res = net.feed_forward(pattern)
+	
+		#print("Result: " + str(res))
+	
+		net.back_propagate(expected_output, res, learn_rate, local_learn_rate)
 		
-	res = net.feed_forward([1, 1, 1, 1])
-	print("Result: " + str(res))
+	res = net.feed_forward(pattern)
+	print("First result: " + str(first_res) + "\nResult: " + str(res))
 
 if __name__ == "__main__":
 	run()
