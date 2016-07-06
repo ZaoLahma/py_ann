@@ -3,7 +3,7 @@
 from random import uniform
 from math import tanh
 
-BIAS = -1
+BIAS = -1.0
 
 #------------------------------------------------
 # The activation function.
@@ -29,41 +29,39 @@ class Neuron:
 		val = 0.0
 		for weight, value in zip(self.weights, values):
 			val += weight * value
-		self.prev_output = sigmoid(val)
-		return self.prev_output		
+		val += self.weights[-1] * BIAS
+		self.prev_out = sigmoid(val)
+		return self.prev_out	
 		
 class NeuronLayer:
 	def __init__(self, n_neurons, n_inputs):
 		self.n_neurons = n_neurons
-		self.neurons = [Neuron( n_inputs ) for _ in range(0,self.n_neurons)]
+		self.neurons = []
+		self.error = 0.0
+		for _ in range(0, self.n_neurons):
+			self.neurons.append(Neuron(n_inputs))
 
 
 class NeuralNet:
-	def __init__(self, n_inputs, n_outputs, n_neurons_to_hl, n_hidden_layers):
+	def __init__(self, n_inputs, n_outputs, n_neurons_to_hl):
 		self.n_inputs = n_inputs
 		self.n_outputs = n_outputs
-		self.n_hidden_layers = n_hidden_layers
 		self.n_neurons_to_hl = n_neurons_to_hl
 
 		self._init_network()
 
 	def _init_network(self):
-		if self.n_hidden_layers>0:
-			# create the first layer
-			self.layers = [NeuronLayer( self.n_neurons_to_hl,self.n_inputs )]
+		# create the first layer
+		self.layers = [NeuronLayer( self.n_neurons_to_hl,self.n_inputs )]
 
-			# create hidden layers
-			for _ in range(self.n_hidden_layers):
-				self.layers.append(NeuronLayer( self.n_neurons_to_hl,self.n_neurons_to_hl ))
+		# create hidden layer
+		self.layers.append(NeuronLayer( self.n_neurons_to_hl,self.n_neurons_to_hl ))
 
-			# hidden-to-output layer
-			self.layers += [NeuronLayer( self.n_outputs,self.n_neurons_to_hl )]
-		else:
-			# If we don't require hidden layers
-			self.layers = [NeuronLayer( self.n_outputs,self.n_inputs )]
+		# hidden-to-output layer
+		self.layers += [NeuronLayer( self.n_outputs,self.n_neurons_to_hl )]
 
 
-	def feed_forward(self, inputs ):
+	def feed_forward(self, inputs):
 		for layer in self.layers:
 			outputs = []
 			for neuron in layer.neurons:
@@ -71,9 +69,52 @@ class NeuralNet:
 			inputs = outputs   
 		return outputs
 		
+	def back_prop(self, expected, learning_rate = 0.01):
+		# Get the output layer's error, beginning with getting the error from each neuron
+		output_layer = self.layers[2]
+		output_errors = [0.0] * output_layer.n_neurons
+		for n_index in range(output_layer.n_neurons):
+			error = output_layer.neurons[n_index].prev_out - expected[n_index]
+			print("Relative error: " + str(error))
+			output_errors[n_index] = error * sigmoid_prim(output_layer.neurons[n_index].prev_out)
+			
+		print("Output layer errors: " + str(output_errors))
+		
+		# Get hidden layer's error
+		hidden_layer = self.layers[1]
+		hidden_errors = [0.0] * hidden_layer.n_neurons
+		for n_index in range(hidden_layer.n_neurons):
+			total = 0.0
+			for error_index in range(len(output_errors)):
+				total += hidden_layer.neurons[n_index].weights[error_index] * output_errors[error_index]
+			hidden_errors[n_index] = total * sigmoid_prim(hidden_layer.neurons[n_index].prev_out)
+			
+		# Get input layer's error
+		input_layer = self.layers[0]
+		input_errors = [0.0] * input_layer.n_neurons
+		for n_index in range(input_layer.n_neurons):
+			total = 0.0
+			for error_index in range(len(hidden_errors)):
+				total += input_layer.neurons[n_index].weights[error_index] * hidden_errors[error_index]
+			input_errors[n_index] = total * sigmoid_prim(input_layer.neurons[n_index].prev_out)
+			
+		# Update the weights of the input layer
+		for error_index in range(len(hidden_errors)):
+			for update_index in range(input_layer.n_neurons):
+				input_layer.neurons[update_index].weights[error_index] = learning_rate * hidden_errors[error_index] * input_layer.neurons[update_index].prev_out
+		
+		# Update the weights of the hidden layer
+		for error_index in range(len(output_errors)):
+			for update_index in range(input_layer.n_neurons):
+				hidden_layer.neurons[update_index].weights[error_index] = learning_rate * output_errors[error_index] * hidden_layer.neurons[update_index].prev_out
 		
 		
 if __name__ == "__main__":
-	net = NeuralNet(3, 1, 2, 1)
+	net = NeuralNet(3, 1, 3)
 	
-	print("Result: " + str(net.feed_forward([1, 1, 1])))
+	for _ in range(10):
+		print("Result: " + str(net.feed_forward([1, 1, 1])))
+		
+		net.back_prop([1])
+	
+	

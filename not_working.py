@@ -85,8 +85,7 @@ class NeuralNet():
 		for neuron_index in range(len(self.hidden)):
 			neuron_error_sum = 0.0
 			for error_index in range(len(out_error)):
-				for output_index in range(len(self.outputs)):
-					neuron_error_sum = neuron_error_sum + self.outputs[output_index].weights[neuron_index] * out_error[error_index]
+					neuron_error_sum = neuron_error_sum + self.outputs[error_index].weights[neuron_index] * out_error[error_index]
 					
 			# Phew...! Now let's get the neuron error. I think. o.O
 			hidden_error[neuron_index] = neuron_error_sum * sigmoid_prim(self.hidden[neuron_index].prev_output)
@@ -129,7 +128,7 @@ def run():
 	learn_rate = 0.01
 	local_learn_rate = None
 	
-	for i in range(100):
+	for i in range(10000):
 		res = net.feed_forward(pattern)
 	
 		#print("Result: " + str(res))

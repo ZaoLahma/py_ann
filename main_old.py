@@ -7,7 +7,7 @@ def sigmoid(x):
 	return (1 / (1 + exp(-x)))
 	
 def sigmoid_prim(x):
-	return (x * (1 - x))
+	return (sigmoid(x) * (1 - x))
 
 class Neuron:
 	def __init__(self, num_weights):
