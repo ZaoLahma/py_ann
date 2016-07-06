@@ -116,27 +116,34 @@ def run():
 	print("run called")
 	num_inputs = 3
 	num_outputs = 3
-	num_hidden = 4
+	num_hidden = 8
 	
 	net = NeuralNet(num_inputs, num_outputs, num_hidden)
 	
-	pattern = [1, 1, 1]
-	expected_output = [0, 1, 0]
+	pattern =         [[1, 0, 0], [0, 0, 1]]#, [1, 1, 0], [1, 0, 1], [0, 1, 0]]
+	expected_output = [[0, 1, 1], [1, 1, 0]]#, [0, 0, 1], [0, 1, 0], [1, 0, 1]]
 	
-	first_res = net.feed_forward(pattern)
+	first_res = net.feed_forward(pattern[0])
 	
 	learn_rate = 0.01
-	local_learn_rate = None
+	local_learn_rate = 0.01
 	
-	for i in range(10000):
-		res = net.feed_forward(pattern)
-	
-		#print("Result: " + str(res))
-	
-		net.back_propagate(expected_output, res, learn_rate, local_learn_rate)
+	for i in range(1000):
+		for i in range(len(pattern)):
+			res = net.feed_forward(pattern[i])
 		
-	res = net.feed_forward(pattern)
+			#print("Result: " + str(res))
+		
+			net.back_propagate(expected_output[i], res, learn_rate, local_learn_rate)
+		
+	res = net.feed_forward(pattern[0])
 	print("First result: " + str(first_res) + "\nResult: " + str(res))
+	
+	
+	test_pattern = [0, 0, 1]
+	res = net.feed_forward(test_pattern)
+	print("Result from test: " + str(res))
+	
 
 if __name__ == "__main__":
 	run()
