@@ -72,8 +72,8 @@ class NeuralNet():
 		out_error = [0.0] * len(self.outputs)
 		for neuron_index in range(len(self.outputs)):
 			error = expected[neuron_index] - actual[neuron_index]
+			print("Output relative error: " + str(error))
 			out_error[neuron_index] = error * sigmoid_prim(self.outputs[neuron_index].prev_output)
-		#print("Output error: " + str(out_error))
 		
 		# Get the error from the hidden neuron(s):
 		# Multiply the output error with the weight between the neurons
@@ -89,8 +89,6 @@ class NeuralNet():
 					
 			# Phew...! Now let's get the neuron error. I think. o.O
 			hidden_error[neuron_index] = neuron_error_sum * sigmoid_prim(self.hidden[neuron_index].prev_output)
-			#print("prev output: " + str(self.hidden[neuron_index].prev_output))
-			#print("Hidden error: " + str(hidden_error))
 			
 		
 		for hidden_index in range(len(self.hidden)):	
@@ -99,8 +97,8 @@ class NeuralNet():
 					change = out_error[error_index] * self.hidden[hidden_index].prev_output * learning_rate
 					if None != local_learn_rate:
 						change = change + local_learn_rate *  self.hidden[hidden_index].change_out					
-					#print("out_error: " + str(out_error[error_index]) + " prev output: " + str(self.hidden[hidden_index].prev_output) + " Change: " + str(change))
-					self.outputs[output_index].weights[error_index] = self.outputs[output_index].weights[error_index] + change
+					# Only take responsibility for the weight that is connected the hidden layer neuron. Hence weights[hidden_index]
+					self.outputs[output_index].weights[hidden_index] = self.outputs[output_index].weights[hidden_index] + change
 					self.outputs[output_index].change_out = change
 			#print("New output weights: " + str(self.outputs[output_index].weights))
 			
@@ -110,7 +108,7 @@ class NeuralNet():
 					change = hidden_error[error_index] * self.inputs[input_index].prev_output * learning_rate
 					if None != local_learn_rate:
 						change = change + local_learn_rate *  self.inputs[input_index].change_in
-					self.hidden[hidden_index].weights[error_index] = self.hidden[hidden_index].weights[error_index] + change
+					self.hidden[hidden_index].weights[input_index] = self.hidden[hidden_index].weights[input_index] + change
 					self.hidden[hidden_index].change_in = change
 			#print("New weights hidden layer: " + str(self.hidden[hidden_index].weights))
 
@@ -122,15 +120,15 @@ def run():
 	
 	net = NeuralNet(num_inputs, num_outputs, num_hidden)
 	
-	pattern = [1, 0, 1, 1]
-	expected_output = [0, 1, 0, 0]
+	pattern = [1, 1, 1, 1]
+	expected_output = [0, 0, 0, 0]
 	
 	first_res = net.feed_forward(pattern)
 	
 	learn_rate = 0.01
 	local_learn_rate = 0.01
 	
-	for i in range(10):
+	for i in range(1):
 		res = net.feed_forward(pattern)
 	
 		#print("Result: " + str(res))
