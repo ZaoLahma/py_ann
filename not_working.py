@@ -68,7 +68,7 @@ class NeuralNet():
 		
 		return self.layer_results[-1]
 		
-	def back_propagate(self, expected, actual, learning_rate, local_learn_rate):
+	def back_propagate(self, inputs, expected, actual, learning_rate, local_learn_rate):
 		# Get the error from the output neuron(s)
 		out_error = [0.0] * len(self.outputs)
 		for neuron_index in range(len(self.outputs)):
@@ -89,6 +89,16 @@ class NeuralNet():
 					
 			# Phew...! Now let's get the neuron error. I think. o.O
 			hidden_error[neuron_index] = neuron_error_sum * sigmoid_prim(self.hidden[neuron_index].prev_output)
+			
+			
+		input_error = [0.0] * len(self.inputs)
+		for neuron_index in range(len(self.inputs)):
+			neuron_error_sum = 0.0
+			for error_index in range(len(hidden_error)):
+					neuron_error_sum = neuron_error_sum + self.hidden[error_index].weights[neuron_index] * hidden_error[error_index]
+					
+			# Phew...! Now let's get the neuron error. I think. o.O
+			input_error[neuron_index] = neuron_error_sum * sigmoid_prim(self.inputs[neuron_index].prev_output)			
 			
 		
 		for hidden_index in range(len(self.hidden)):	
@@ -111,6 +121,14 @@ class NeuralNet():
 					self.hidden[hidden_index].weights[input_index] = self.hidden[hidden_index].weights[input_index] + change
 					self.hidden[hidden_index].change_in = change
 			#print("New weights hidden layer: " + str(self.hidden[hidden_index].weights))
+			
+		#for input_index in range(len(inputs)):
+		#	for error_index in range(len(input_error)):
+		#		for inputs_index in range(len(self.inputs)):
+		#			change = input_error[error_index] * inputs[input_index] * learning_rate
+		#			self.inputs[inputs_index].weights[input_index] = self.hidden[inputs_index].weights[input_index] + change
+		#			self.inputs[inputs_index].change_in = change
+			#print("New weights hidden layer: " + str(self.hidden[hidden_index].weights))			
 
 def run():
 	print("run called")
@@ -120,21 +138,21 @@ def run():
 	
 	net = NeuralNet(num_inputs, num_outputs, num_hidden)
 	
-	pattern =         [[1, 0, 0], [0, 0, 1]]#, [1, 1, 0], [1, 0, 1], [0, 1, 0]]
-	expected_output = [[0, 1, 1], [1, 1, 0]]#, [0, 0, 1], [0, 1, 0], [1, 0, 1]]
+	pattern =         [[1, 0, 0], [0, 0, 1], [1, 1, 0], [1, 0, 1], [0, 1, 0]]
+	expected_output = [[0, 1, 1], [1, 1, 0], [0, 0, 1], [0, 1, 0], [1, 0, 1]]
 	
 	first_res = net.feed_forward(pattern[0])
 	
 	learn_rate = 0.01
 	local_learn_rate = 0.01
 	
-	for i in range(1000):
+	for i in range(10000):
 		for i in range(len(pattern)):
 			res = net.feed_forward(pattern[i])
 		
 			#print("Result: " + str(res))
 		
-			net.back_propagate(expected_output[i], res, learn_rate, local_learn_rate)
+			net.back_propagate(pattern[i], expected_output[i], res, learn_rate, local_learn_rate)
 		
 	res = net.feed_forward(pattern[0])
 	print("First result: " + str(first_res) + "\nResult: " + str(res))
