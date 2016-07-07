@@ -4,6 +4,7 @@ from random import uniform
 from math import exp
 from math import tanh
 from multiprocessing import Pool
+import datetime
 
 #------------------------------------------------
 def sigmoid(x):
@@ -113,6 +114,7 @@ class NeuralNetTrainer:
 		self.acceptable_error = acceptable_error
 		
 	def train(self, patterns, expecteds, num_epochs = 10000, N = 0.1, M = 0.1):
+		time = datetime.datetime.now()
 		for epoch in range(num_epochs):
 			training_complete = True
 			
@@ -123,10 +125,11 @@ class NeuralNetTrainer:
 					training_complete = False
 					
 			if training_complete:
-				print("Acceptably low error (<" + str(self.acceptable_error) + ") achieved after " + str(epoch) + " epochs")
+				elapsed_time = datetime.datetime.now() - time
+				print("Acceptably low error (<" + str(self.acceptable_error) + ") achieved after " + str(epoch) + " epochs. Time: " + str(elapsed_time))
 				return
-				
-		print("Training completed without achieving acceptably low error (<" + str(self.acceptable_error) + ")")
+		elapsed_time = datetime.datetime.now() - time		
+		print("Training completed without achieving acceptably low error (<" + str(self.acceptable_error) + ") after time: " + str(elapsed_time))
 
 
 
