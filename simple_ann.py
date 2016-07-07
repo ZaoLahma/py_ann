@@ -1,92 +1,108 @@
 #!/usr/bin/env python3
 
-
 from random import uniform
 from math import exp
-from math import tanh
 
 #------------------------------------------------
-# The activation function.
 def sigmoid(x):
-	return tanh(x)
-
-# The derivate of the activation function
+	return (1 / (1 + exp(-x)))
+	
 def sigmoid_prim(x):
-	return 1.0 - x**2
+	return (sigmoid(x) * (1 - x))
 #------------------------------------------------
 
-
-class InputNeuron:
-	def __init__(self, num_in):
-		self.value = 0.0
-		self.weights = []
-		for _ in range(num_in + 1):
-			self.weights.append(uniform(-1, 1))
-			
-		print("Created InputNeuron with weights: " + str(self.weights))
+def make_matrix(X, Y, val=0.0):
+	ret_val = []
+	for x in range(X):
+		ret_val.append([val] * Y)
 		
-		
-class Neuron:
-	def __init__(self, num_in):
-		self.weights = []
-		self.input_sum = 0.0
-		self.output = 0.0
-		self.error = 0.0
-		for _ in range(num_in + 1):
-			self.weights.append(uniform(-1, 1))
-			
-		print("Created Neuron with weights: " + str(self.weights))		
-
-class OutputNeuron:
-	def __init__(self):
-		self.input_sum = 0.0
-		self.output = 0.0
-		self.error = 0.0
-		self.target = 0.0
-		
-		
+	print("Created matrix: " + str(ret_val))
+	return ret_val
+	
 class NeuralNet:
-	def __init__(self, num_in, num_out):
-		self.pre_input_layer = []
-		for _ in range(num_in):
-			self.pre_input_layer.append(InputNeuron(num_in))
+	def __init__(self, num_in, num_hid, num_out):
+		self.num_in = num_in + 1
+		self.num_hid = num_hid
+		self.num_out = num_out
 		
-		self.input_layer = []
-		for _ in range(num_in):
-			self.input_layer.append(Neuron(num_in))		
+		self.activation_in = [1.0] * self.num_in
+		self.activation_hid = [1.0] * self.num_hid
+		self.activation_out = [1.0] * self.num_out
 		
-		self.hidden_layer = []
-		for _ in range(4):
-			self.hidden_layer.append(Neuron(len(self.input_layer)))
+		self.weights_in = make_matrix(self.num_in, self.num_hid)
+		self.weights_out = make_matrix(self.num_hid, self.num_out)
+
+		for i in range(self.num_in):
+			for j in range(self.num_hid):
+				self.weights_in[i][j] = uniform(-1, 1)
+				
+		for j in range(self.num_hid):
+			for k in range(self.num_out):
+				self.weights_out[j][k] = uniform(-1, 1)
+				
+		self.change_in = make_matrix(self.num_in, self.num_hid)
+		self.change_out = make_matrix(self.num_hid, self.num_hid)
+		
+	def feed_forward(self, inputs):
+		
+		for i in range(self.num_in - 1):
+			self.activation_in[i] = inputs[i]
 			
-		self.output_layer = []
-		for _ in range(num_out):
-			self.output_layer.append(OutputNeuron())
-			
-			
-			
-	def forward_prop(inputs, expected):
-		for i in range(len(inputs)):
-			self.pre_input_layer[i].value = inputs[i]
-			
-		for i in range(len(inputs)):
+		for j in range(self.num_hid):
 			total = 0.0
-			for j in range(len(self.pre_input_layer)):
-				total += self.pre_input_layer[j].value * self.pre_input_layer[j].weights[i]
-			self.input_layer[i].input_sum = total
-			self.input_layer[i].output = sigmoid(total)
-			
-		for i in range(len(self.hidden_layer)):
+			for i in range(self.num_in):
+				total = total + self.activation_in[i] * self.weights_in[i][j]
+			self.activation_hid[j] = sigmoid(total)
+				
+		for k in range(self.num_out):
 			total = 0.0
-			for j in range(len(self.input_layer)):
-				total += self.input_layer[j].value * self.input_layer[j].weights[i]
-			self.hidden_layer[i].input_sum = total
-			self.hidden_layer[i].output = sigmoid(total)
+			for j in range(self.num_hid):
+				total = total + self.activation_hid[j] * self.weights_out[j][k]
+			self.activation_out[k] = sigmoid(total)
 			
-		for i in range(len(self.output_layer)):
-			total = 0.0
-			for j in range(len(self.hidden_layer)):
-				total += self.hidden_layer[j].value * self.hidden_layer[j].weights[i]
-			self.output_layer[i].input_sum = total
-			self.output_layer[i].output = sigmoid(total)				
-					
+		return self.activation_out
+
+	def back_prop(self, expected, N = 0.01, M  = 0.01):
+		
+		# Get ouput layer errors
+		output_errors = [0.0] * self.num_out
+		for k in range(self.num_out):
+			error = expected[k] - self.activation_out[k]
+			output_errors[k] = error * sigmoid_prim(self.activation_out[k])
+			
+		# Get hidden layer errors	
+		hidden_errors = [0.0] * self.num_hid
+		for j in range(self.num_hid):
+			error = 0.0
+			for k in range(self.num_out):
+				error = error + output_errors[k] * self.weights_out[j][k]
+			hidden_errors[j] = error * sigmoid_prim(self.activation_hid[j])
+			
+		# Update output layer weights	
+		for j in range(self.num_hid):
+			for k in range(self.num_out):
+				change = output_errors[k] * self.activation_hid[j]
+				self.weights_out[j][k] += N * change + M * self.change_out[j][k]
+				self.change_out[j][k] = change
+		
+		#  Update input layer weights
+		for i in range(self.num_in):
+			for j in range(self.num_hid):
+				change = hidden_errors[j] * self.activation_in[i]
+				self.weights_in[i][j] += N * change + M * self.change_in[i][j]
+				self.change_in[i][j] = change
+				
+		# Calculate the error
+		error = 0.0
+		for k in range(len(expected)):
+			error += 0.5 * (expected[k] - self.activation_out[k])**2
+		return error
+		
+		
+		
+if __name__ == "__main__":
+	net = NeuralNet(3, 5, 3)
+	
+	for _ in range(10000):
+		print(net.feed_forward([1, 1, 1]))
+		print(net.back_prop([1, 0, 1]))
