@@ -3,6 +3,7 @@
 from random import uniform
 from math import exp
 from math import tanh
+from job_dispatcher import JobDispatcher
 
 #------------------------------------------------
 def sigmoid(x):
@@ -126,31 +127,69 @@ class NeuralNetTrainer:
 				return
 				
 		print("Training completed without achieving acceptably low error (<" + str(self.acceptable_error) + ")")
+
+
+
+
+
+#This stuff below was an attempt at making things happen in parallel. The GIL of Python effectively put an end to that effort though.
+TRAINING_COMPLETE = 0x00001000
+
+class NetTrainerJob:
+	def __init__(self, name, trainer, patterns, expected, epochs):
+		self.name = name
+		self.trainer = trainer
+		self.patterns = patterns
+		self.expected = expected
+		self.epochs = epochs
+		
+	def execute(self):
+		print("Training network " + self.name)
+		self.trainer.train(self.patterns, self.expected, self.epochs)
+		JobDispatcher.get_api().raise_event(TRAINING_COMPLETE, [self.name, self.trainer.net])
+		
+class Runner:
+	def __init__(self):
+		print("Runner created")
+		JobDispatcher.get_api().subscribe_to_event(TRAINING_COMPLETE, self)
+		self.patterns = []
+		self.expected = []
+		
+	def run(self):
+		self.patterns = [[0, 0], [0, 1], [1, 0], [1, 1]]
+		self.expected = [ [0],    [1],    [1],    [0]]
+		
+		net_tanh = NeuralNet(2, 10, 1, sigmoid_tanh, sigmoid_tanh_prim)
+		acceptable_error = 0.001
+		job_tanh = NetTrainerJob("tanh", NeuralNetTrainer(net_tanh, acceptable_error), self.patterns, self.expected, 10000)
+		
+		net_tanh_fewer_hidden = NeuralNet(2, 2, 1, sigmoid_tanh, sigmoid_tanh_prim)
+		acceptable_error = 0.001
+		job_tanh_fewer_hidden = NetTrainerJob("tanh_fewer_hidden", NeuralNetTrainer(net_tanh_fewer_hidden, acceptable_error), self.patterns, self.expected, 10000)		
+		
+		net_sigmoid = NeuralNet(2, 8, 1, sigmoid, sigmoid_prim)
+		acceptable_error = 0.001
+		job_sigmoid = NetTrainerJob("sigmoid", NeuralNetTrainer(net_sigmoid, acceptable_error), self.patterns, self.expected, 10000)
+		
+		net_sigmoid_higher_error = NeuralNet(2, 8, 1, sigmoid, sigmoid_prim)
+		acceptable_error = 0.01
+		job_sigmoid_higher_error = NetTrainerJob("sigmoid_higher_error", NeuralNetTrainer(net_sigmoid_higher_error, acceptable_error), self.patterns, self.expected, 10000)
+				
+		
+		JobDispatcher.get_api().execute_job(job_tanh)
+		JobDispatcher.get_api().execute_job(job_tanh_fewer_hidden)
+		JobDispatcher.get_api().execute_job(job_sigmoid)
+		JobDispatcher.get_api().execute_job(job_sigmoid_higher_error)
+
+			
+	def handle_event(self, event_no, event_data):
+		net = event_data[1]
+		print("Testing network " + event_data[0])
+		for pattern in self.patterns:
+			print(str(pattern) + " -> " + str(net.feed_forward(pattern)))
+	
 		
 if __name__ == "__main__":
-	patterns = [[0, 0], [0, 1], [1, 0], [1, 1]]
-	expected = [ [0],    [1],    [1],    [0]]
-	
-	print("Training tanh network")
-	net_tanh = NeuralNet(2, 10, 1, sigmoid_tanh, sigmoid_tanh_prim)
-	acceptable_error = 0.001
-	trainer_tanh = NeuralNetTrainer(net_tanh, acceptable_error)
-	trainer_tanh.train(patterns, expected, 10000)
-	
-	#Test what the net should have learnt
-	print("Testing tanh network")
-	for pattern in patterns:
-		print(str(pattern) + " -> " + str(net_tanh.feed_forward(pattern)))
-		
-		
-	print("Training sigmoid network")	
-	net_sigmoid = NeuralNet(2, 10, 1, sigmoid, sigmoid_prim)
-	acceptable_error = 0.001
-	trainer_sigmoid = NeuralNetTrainer(net_sigmoid, acceptable_error)
-	trainer_sigmoid.train(patterns, expected, 10000)
-	
-	#Test what the net should have learnt
-	print("Testing sigmoid network")
-	for pattern in patterns:
-		print(str(pattern) + " -> " + str(net_sigmoid.feed_forward(pattern)))	
-	
+	runner = Runner()
+	runner.run()
+	JobDispatcher.get_api().stop(True)
