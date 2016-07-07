@@ -130,10 +130,10 @@ class NeuralNetTrainer:
 if __name__ == "__main__":
 	patterns = [[0, 0], [0, 1], [1, 0], [1, 1]]
 	expected = [ [0],    [1],    [1],    [0]]
-	acceptable_error = 0.01
 	
 	print("Training tanh network")
-	net_tanh = NeuralNet(2, 2, 1, sigmoid_tanh, sigmoid_tanh_prim)
+	net_tanh = NeuralNet(2, 10, 1, sigmoid_tanh, sigmoid_tanh_prim)
+	acceptable_error = 0.001
 	trainer_tanh = NeuralNetTrainer(net_tanh, acceptable_error)
 	trainer_tanh.train(patterns, expected, 10000)
 	
@@ -144,7 +144,8 @@ if __name__ == "__main__":
 		
 		
 	print("Training sigmoid network")	
-	net_sigmoid = NeuralNet(2, 8, 1, sigmoid, sigmoid_prim)
+	net_sigmoid = NeuralNet(2, 10, 1, sigmoid, sigmoid_prim)
+	acceptable_error = 0.001
 	trainer_sigmoid = NeuralNetTrainer(net_sigmoid, acceptable_error)
 	trainer_sigmoid.train(patterns, expected, 10000)
 	
