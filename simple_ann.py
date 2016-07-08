@@ -107,6 +107,9 @@ class NeuralNet:
 		for k in range(len(expected)):
 			error += 0.5 * (expected[k] - self.activation_out[k])**2
 		return error
+		
+	def get_properties(self):
+		return str("num_in: " + str(self.num_in) + " num_hid: " + str(self.num_hid) + " num_out: " + str(self.num_out))
 
 class NeuralNetTrainer:
 	def __init__(self, net, acceptable_error = 0.01):
@@ -149,7 +152,7 @@ class NetTrainerJob:
 		self.trainer.train(self.patterns, self.expected, self.epochs)
 
 		net = self.trainer.net
-		print("Testing network " + self.name)
+		print("Testing network " + self.name + ", " + net.get_properties())
 		for pattern in self.patterns:
 			print(str(pattern) + " -> " + str(net.feed_forward(pattern)))		
 	
@@ -161,28 +164,33 @@ if __name__ == "__main__":
 	patterns = [[0, 0], [0, 1], [1, 0], [1, 1]]
 	expected = [ [0],    [1],    [1],    [0]]
 	
+	pool = Pool()
+	
 	job_list = []
 	
-	net_tanh = NeuralNet(2, 10, 1, sigmoid_tanh, sigmoid_tanh_prim)
-	acceptable_error = 0.001
-	job_tanh = NetTrainerJob("tanh", NeuralNetTrainer(net_tanh, acceptable_error), patterns, expected, 10000)
-	
-	net_tanh_fewer_hidden = NeuralNet(2, 2, 1, sigmoid_tanh, sigmoid_tanh_prim)
-	acceptable_error = 0.001
-	job_tanh_fewer_hidden = NetTrainerJob("tanh_fewer_hidden", NeuralNetTrainer(net_tanh_fewer_hidden, acceptable_error), patterns, expected, 10000)		
-	
-	net_sigmoid = NeuralNet(2, 8, 1, sigmoid, sigmoid_prim)
-	acceptable_error = 0.001
-	job_sigmoid = NetTrainerJob("sigmoid", NeuralNetTrainer(net_sigmoid, acceptable_error), patterns, expected, 10000)
-	
-	net_sigmoid_higher_error = NeuralNet(2, 8, 1, sigmoid, sigmoid_prim)
-	acceptable_error = 0.01
-	job_sigmoid_higher_error = NetTrainerJob("sigmoid_higher_error", NeuralNetTrainer(net_sigmoid_higher_error, acceptable_error), patterns, expected, 10000)
-	
-	job_list.append(job_tanh)
-	job_list.append(job_tanh_fewer_hidden)
-	job_list.append(job_sigmoid)
-	job_list.append(job_sigmoid_higher_error)	
-	
-	pool = Pool()
-	pool.map(pool_execute_func, job_list)
+	#Test networks with different properties
+	for offset in range(4):
+		net_tanh = NeuralNet(2, 4 + offset, 1, sigmoid_tanh, sigmoid_tanh_prim)
+		acceptable_error = 0.001
+		job_tanh = NetTrainerJob("tanh", NeuralNetTrainer(net_tanh, acceptable_error), patterns, expected, 10000)
+		
+		net_tanh_fewer_hidden = NeuralNet(2, 1 + offset, 1, sigmoid_tanh, sigmoid_tanh_prim)
+		acceptable_error = 0.001
+		job_tanh_fewer_hidden = NetTrainerJob("tanh_fewer_hidden", NeuralNetTrainer(net_tanh_fewer_hidden, acceptable_error), patterns, expected, 10000)		
+		
+		net_sigmoid = NeuralNet(2, 4 + offset, 1, sigmoid, sigmoid_prim)
+		acceptable_error = 0.001
+		job_sigmoid = NetTrainerJob("sigmoid", NeuralNetTrainer(net_sigmoid, acceptable_error), patterns, expected, 10000)
+		
+		net_sigmoid_higher_error = NeuralNet(2, 4 + offset, 1, sigmoid, sigmoid_prim)
+		acceptable_error = 0.01
+		job_sigmoid_higher_error = NetTrainerJob("sigmoid_higher_error", NeuralNetTrainer(net_sigmoid_higher_error, acceptable_error), patterns, expected, 10000)
+		
+		job_list.append(job_tanh)
+		job_list.append(job_tanh_fewer_hidden)
+		job_list.append(job_sigmoid)
+		job_list.append(job_sigmoid_higher_error)	
+		
+	pool.map(pool_execute_func, job_list)	
+	pool.close()
+	pool.join()
